@@ -14,6 +14,8 @@ class Controller():
         self.start = 'STX'
         self.end = 'ETX'
         self.__raw_frame = ''
+#        self.__raw_frame = 'STX,1461803,0,0,0,0,0,1,1,1,0,1,0,100000,100,0,0,en,en,100000,100000,0,20350,20030,0,0,0,100,976,0,750,0,750,0,976,0,776,0,ETX,STX,1463803,0,0,0,0,0,0,1,1,0,1,0,100000,100,0,0,en,en,100000,0,0,20350,20030,0,0,0,100,976,0,750,0,750,0,976,0,776,0,ETX,STX,1465803,0,0,0,0,0,0,1,1,0,1,0,100000,100,0,0,en,en,100000,0,0,20350,20030,0,0,0,100,976,0,750,0,750,0,976,0,776,0,ETX'
+
         self.__my_frame = {
             'timestamp' : '0',
             'RedLed' : 'on',
@@ -112,14 +114,14 @@ class Controller():
             return False
 
         if __full_frame:
-            ptr = raw.index(self.end) + 3
+            ptr = raw.index(self.end) + 2
             __this_frame = self.__raw_frame[:ptr]
             self.__raw_frame = self.__raw_frame[ptr:]
-            
-            __this_frame = __this_frame(',')
+            __this_frame = __this_frame.lstrip(',').rstrip(',')
+            __this_frame = __this_frame.split(',')
             __full_frame = False
-
-            if len(__split_frame) is 42:
+            print(len(__this_frame))
+            if len(__this_frame) is 39:
                 # Full frame received!
                 self.__my_frame['timestamp'] = __this_frame[1]
                 self.__my_frame['RedLed'] = __this_frame[2]
