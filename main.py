@@ -11,6 +11,8 @@ import serial
 
 class Controller():
     def __init__(self):
+        self.start = 'STX'
+        self.end = 'ETX'
         self.__raw_frame = ''
         self.__my_frame = {
             'timestamp' : '0',
@@ -54,7 +56,7 @@ class Controller():
 
     def get_frame(self):
         x = self.__my_frame
-        out = 'STX'
+        out = self.start
         out += ',' + str(x['timestamp'])
         out += ',' + str(x['RedLed'])
         out += ',' + str(x['GrnLed'])
@@ -92,20 +94,20 @@ class Controller():
         out += ',' + str(x['IBatOut'])
         out += ',' + str(x['VLoad'])
         out += ',' + str(x['ILoad'])
-        return out + ',ETX,'
+        return out + ',' + self.end
         
         
-    def parse_frame(__port):
-        raw = __port.read()
+    def parse_frame(self, __port):
+        raw = str(__port.read(10))
         __full_frame = False
         
         try:
-            ptr = raw.index('STX') ######todo timestamp
+            ptr = raw.index(self.start)
             self.__raw_frame = raw[ptr:]
         except ValueError:
             # STX not found
             try:
-                ptr = raw.index('ETX') + 3
+                ptr = raw.index(self.end) + 3
                 self.__raw_frame += raw[:ptr]
                 __full_frame = True
             except ValueError:
@@ -115,7 +117,7 @@ class Controller():
         if __full_frame:
             __split_frame = self.__raw_frame.split(',')
             __full_frame = False
-            if (len(__split_frame) is 39:
+            if len(__split_frame) is 39:
                 # Full frame received!
                 self.__my_frame['timestamp'] = __split_frame[1]
                 self.__my_frame['RedLed'] = __split_frame[2]
@@ -166,7 +168,17 @@ log = open(("/media/usb/" + time.strftime("%y%m%d-%H%M%S") + "-AlexIE-" + ".tsv"
 
 # Main run function
 if __name__ == "__main__":
-    if a.parse_frame(port):
-        log.write(a.get_frame())
-        log.write("\n")
+    print("Datalogger 2016")
+
+    
+    while True:
+        port.write(bytes('DataDump 100','UTF-8'))
+        print("Starting...")
+        time_start = time.time()
+
+        while time.time()-time_start < 5:
+            if a.parse_frame(port):
+                log.write(a.get_frame())
+                log.write("\n")
+                time_start = time.time()
 
