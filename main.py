@@ -98,26 +98,37 @@ class Controller():
         
         
     def parse_frame(self, __port):
-        raw = str(__port.read(10))
+        raw = str(__port.read(500))
         __full_frame = False
-        
+#        print(raw)        
         try:
             ptr = raw.index(self.start)
             self.__raw_frame = raw[ptr:]
+
+            ptr = self.__raw_frame.index(self.end) + 3
+            self.__raw_frame = self.__raw_frame[:ptr]
+            __full_frame = True
         except ValueError:
             # STX not found
             try:
+                print("Compiling")
                 ptr = raw.index(self.end) + 3
                 self.__raw_frame += raw[:ptr]
                 __full_frame = True
+
             except ValueError:
                 # No identifiers found, middle of frame
                 self.__raw_frame += raw
+
+
             
         if __full_frame:
+
             __split_frame = self.__raw_frame.split(',')
             __full_frame = False
-            if len(__split_frame) is 39:
+#            print("f_len = " + str(len(__split_frame)))
+#            print(__split_frame)
+            if len(__split_frame) is 42:
                 # Full frame received!
                 self.__my_frame['timestamp'] = __split_frame[1]
                 self.__my_frame['RedLed'] = __split_frame[2]
@@ -128,34 +139,34 @@ class Controller():
                 self.__my_frame['McuWake'] = __split_frame[7]
                 self.__my_frame['HydStkA'] = __split_frame[8]
                 self.__my_frame['HydStkB'] = __split_frame[9]
-                self.__my_frame['TempStkA'] = __split_frame[10]
-                self.__my_frame['TempStkB'] = __split_frame[1]
+                self.__my_frame['TempStkB'] = __split_frame[10]
+                self.__my_frame['TempStkA'] = __split_frame[11]
                 self.__my_frame['Fan1'] = __split_frame[12]
                 self.__my_frame['Fan2'] = __split_frame[13]
-                self.__my_frame['AdcTrigger'] = __split_frame[14]
-                self.__my_frame['PurgeValve'] = __split_frame[15]
-                self.__my_frame['InletValve'] = __split_frame[16]
-                self.__my_frame['OutDaq'] = __split_frame[17]
-                self.__my_frame['InDaq'] = __split_frame[18]
-                self.__my_frame['DataDump'] = __split_frame[19]
-                self.__my_frame['VStkA1'] = __split_frame[20]
-                self.__my_frame['IStkA1'] = __split_frame[21]
-                self.__my_frame['VStkA2'] = __split_frame[22]
-                self.__my_frame['IStkA2'] = __split_frame[23]
-                self.__my_frame['VStkA3'] = __split_frame[24]
-                self.__my_frame['IStkA3'] = __split_frame[25]
-                self.__my_frame['VStkB1'] = __split_frame[26]
-                self.__my_frame['IStkB1'] = __split_frame[27]
-                self.__my_frame['VStkB2'] = __split_frame[28]
-                self.__my_frame['IStkB2'] = __split_frame[29]
-                self.__my_frame['VStkB3'] = __split_frame[30]
-                self.__my_frame['IStkB3'] = __split_frame[31]
-                self.__my_frame['VBatIn'] = __split_frame[32]
-                self.__my_frame['IBatIn'] = __split_frame[33]
-                self.__my_frame['VBatOut'] = __split_frame[34]
-                self.__my_frame['IBatOut'] = __split_frame[35]
-                self.__my_frame['VLoad'] = __split_frame[36]
-                self.__my_frame['ILoad'] = __split_frame[37]
+#                self.__my_frame['AdcTrigger'] = __split_frame[14]
+#                self.__my_frame['PurgeValve'] = __split_frame[15]
+#                self.__my_frame['InletValve'] = __split_frame[16]
+#                self.__my_frame['OutDaq'] = __split_frame[17]
+#                self.__my_frame['InDaq'] = __split_frame[18]
+                self.__my_frame['DataDump'] = __split_frame[14]
+                self.__my_frame['VStkA1'] = __split_frame[15]
+                self.__my_frame['IStkA1'] = __split_frame[16]
+                self.__my_frame['VStkA2'] = __split_frame[17]
+                self.__my_frame['IStkA2'] = __split_frame[18]
+                self.__my_frame['VStkA3'] = __split_frame[19]
+                self.__my_frame['IStkA3'] = __split_frame[20]
+                self.__my_frame['VStkB1'] = __split_frame[21]
+                self.__my_frame['IStkB1'] = __split_frame[22]
+                self.__my_frame['VStkB2'] = __split_frame[23]
+                self.__my_frame['IStkB2'] = __split_frame[24]
+                self.__my_frame['VStkB3'] = __split_frame[25]
+                self.__my_frame['IStkB3'] = __split_frame[26]
+                self.__my_frame['VBatIn'] = __split_frame[27]
+                self.__my_frame['IBatIn'] = __split_frame[28]
+                self.__my_frame['VBatOut'] = __split_frame[29]
+                self.__my_frame['IBatOut'] = __split_frame[30]
+                self.__my_frame['VLoad'] = __split_frame[31]
+                self.__my_frame['ILoad'] = __split_frame[32]
                 return True
             else:
                 # Corrupt frame
@@ -172,12 +183,18 @@ if __name__ == "__main__":
 
     
     while True:
-        port.write(bytes('DataDump 100','UTF-8'))
+        out = 'DataDump 100\n\r'
+        port.write(out.encode())
+#        print(out[:-2])
+#        out = 'OutDaq dis\n\r'
+#        port.write(out.encode())
+#        print(out[:-2])
         print("Starting...")
         time_start = time.time()
 
         while time.time()-time_start < 5:
             if a.parse_frame(port):
+                print(a.get_frame())
                 log.write(a.get_frame())
                 log.write("\n")
                 time_start = time.time()
