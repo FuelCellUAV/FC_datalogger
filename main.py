@@ -100,7 +100,7 @@ class Controller():
     def parse_frame(self, __port):
         raw = str(__port.read(500))
         __full_frame = False
-#        print(raw)        
+       
         try:
             ptr = raw.index(self.start)
             self.__raw_frame = raw[ptr:]
@@ -126,8 +126,7 @@ class Controller():
 
             __split_frame = self.__raw_frame.split(',')
             __full_frame = False
-#            print("f_len = " + str(len(__split_frame)))
-#            print(__split_frame)
+
             if len(__split_frame) is 42:
                 # Full frame received!
                 self.__my_frame['timestamp'] = __split_frame[1]
@@ -143,11 +142,6 @@ class Controller():
                 self.__my_frame['TempStkA'] = __split_frame[11]
                 self.__my_frame['Fan1'] = __split_frame[12]
                 self.__my_frame['Fan2'] = __split_frame[13]
-#                self.__my_frame['AdcTrigger'] = __split_frame[14]
-#                self.__my_frame['PurgeValve'] = __split_frame[15]
-#                self.__my_frame['InletValve'] = __split_frame[16]
-#                self.__my_frame['OutDaq'] = __split_frame[17]
-#                self.__my_frame['InDaq'] = __split_frame[18]
                 self.__my_frame['DataDump'] = __split_frame[14]
                 self.__my_frame['VStkA1'] = __split_frame[15]
                 self.__my_frame['IStkA1'] = __split_frame[16]
@@ -185,11 +179,8 @@ if __name__ == "__main__":
     while True:
         out = 'DataDump 100\n\r'
         port.write(out.encode())
-#        print(out[:-2])
-#        out = 'OutDaq dis\n\r'
-#        port.write(out.encode())
-#        print(out[:-2])
-        print("Starting...")
+
+        print("Restarting...")
         time_start = time.time()
 
         while time.time()-time_start < 5:
