@@ -26,8 +26,8 @@ class Controller():
             'McuWake' : 'en',
             'HydStkA' : 'dis',
             'HydStkB' : 'dis',
-            'TempStkA' : False,
-            'TempStkB' : False,
+            'TempStkA' : '0',
+            'TempStkB' : '0',
             'Fan1' : '100',
             'Fan2' : '0',
             'AdcTrigger' : '100',
@@ -36,24 +36,24 @@ class Controller():
             'OutDaq' : 'en',  # Disable controller
             'InDaq' : 'en',
             'DataDump' : '500',
-            'VStkA1' : False,
-            'IStkA1' : False,
-            'VStkA2' : False,
-            'IStkA2' : False,
-            'VStkA3' : False,
-            'IStkA3' : False,
-            'VStkB1' : False,
-            'IStkB1' : False,
-            'VStkB2' : False,
-            'IStkB2' : False,
-            'VStkB3' : False,
-            'IStkB3' : False,
-            'VBatIn' : False,
-            'IBatIn' : False,
-            'VBatOut' : False,
-            'IBatOut' : False,
-            'VLoad' : False,
-            'ILoad' : False,
+            'VStkA1' : '0',
+            'IStkA1' : '0',
+            'VStkA2' : '0',
+            'IStkA2' : '0',
+            'VStkA3' : '0',
+            'IStkA3' : '0',
+            'VStkB1' : '0',
+            'IStkB1' : '0',
+            'VStkB2' : '0',
+            'IStkB2' : '0',
+            'VStkB3' : '0',
+            'IStkB3' : '0',
+            'VBatIn' : '0',
+            'IBatIn' : '0',
+            'VBatOut' : '0',
+            'IBatOut' : '0',
+            'VLoad' : '0',
+            'ILoad' : '0',
             }
 
     def get_frame(self):
@@ -100,61 +100,66 @@ class Controller():
         
         
     def parse_frame(self, __port):
-        raw = self.__raw_frame + str(__port.read(500))
+        raw = self.__raw_frame + ((__port.read(10))).decode('UTF-8','ignore')
+#        print(len(raw))
         __full_frame = False
        
         try:
             ptr = raw.index(self.start)
-            self.__raw_frame = raw[ptr:]
+            raw = raw[ptr:].lstrip(',')
 
-            if self.__raw_frame.index(self.end):
+            if raw.index(self.end):
                 __full_frame = True
+            else: self.__raw_frame = raw
 
         except ValueError:
+            self.__raw_frame = raw
             return False
 
         if __full_frame:
-            ptr = raw.index(self.end) + 2
-            __this_frame = self.__raw_frame[:ptr]
-            self.__raw_frame = self.__raw_frame[ptr:]
-            __this_frame = __this_frame.lstrip(',').rstrip(',')
+            ptr = raw.index(self.end) + 3
+            __this_frame = raw[:ptr].rstrip(',')
+
+            self.__raw_frame = raw[ptr:]
+
+#            __this_frame = __this_frame.lstrip(',').rstrip(',')
             __this_frame = __this_frame.split(',')
             __full_frame = False
-            print(len(__this_frame))
-            if len(__this_frame) is 39:
+#            print(__this_frame)
+            if len(__this_frame) is 42:
                 # Full frame received!
-                self.__my_frame['timestamp'] = __this_frame[1]
-                self.__my_frame['RedLed'] = __this_frame[2]
-                self.__my_frame['GrnLed'] = __this_frame[3]
-                self.__my_frame['CartPwr'] = __this_frame[4]
-                self.__my_frame['StkA'] = __this_frame[5]
-                self.__my_frame['StkB'] = __this_frame[6]
-                self.__my_frame['McuWake'] = __this_frame[7]
-                self.__my_frame['HydStkA'] = __this_frame[8]
-                self.__my_frame['HydStkB'] = __this_frame[9]
-                self.__my_frame['TempStkB'] = __this_frame[10]
-                self.__my_frame['TempStkA'] = __this_frame[11]
-                self.__my_frame['Fan1'] = __this_frame[12]
-                self.__my_frame['Fan2'] = __this_frame[13]
-                self.__my_frame['DataDump'] = __this_frame[14]
-                self.__my_frame['VStkA1'] = __this_frame[15]
-                self.__my_frame['IStkA1'] = __this_frame[16]
-                self.__my_frame['VStkA2'] = __this_frame[17]
-                self.__my_frame['IStkA2'] = __this_frame[18]
-                self.__my_frame['VStkA3'] = __this_frame[19]
-                self.__my_frame['IStkA3'] = __this_frame[20]
-                self.__my_frame['VStkB1'] = __this_frame[21]
-                self.__my_frame['IStkB1'] = __this_frame[22]
-                self.__my_frame['VStkB2'] = __this_frame[23]
-                self.__my_frame['IStkB2'] = __this_frame[24]
-                self.__my_frame['VStkB3'] = __this_frame[25]
-                self.__my_frame['IStkB3'] = __this_frame[26]
-                self.__my_frame['VBatIn'] = __this_frame[27]
-                self.__my_frame['IBatIn'] = __this_frame[28]
-                self.__my_frame['VBatOut'] = __this_frame[29]
-                self.__my_frame['IBatOut'] = __this_frame[30]
-                self.__my_frame['VLoad'] = __this_frame[31]
-                self.__my_frame['ILoad'] = __this_frame[32]
+                self.__my_frame['timestamp'] = (__this_frame[1])
+                self.__my_frame['RedLed']    = (__this_frame[2])
+                self.__my_frame['GrnLed']    = (__this_frame[3])
+                self.__my_frame['CartPwr']   = (__this_frame[4])
+                self.__my_frame['StkA']      = (__this_frame[5])
+                self.__my_frame['StkB']      = (__this_frame[6])
+                self.__my_frame['McuWake']   = (__this_frame[7])
+                self.__my_frame['HydStkA']   = (__this_frame[8])
+                self.__my_frame['HydStkB']   = (__this_frame[9])
+                self.__my_frame['TempStkB']  = (__this_frame[10])
+                self.__my_frame['TempStkA']  = (__this_frame[11])
+                self.__my_frame['Fan1']      = (__this_frame[12])
+                self.__my_frame['Fan2']      = (__this_frame[13])
+                self.__my_frame['DataDump']  = (__this_frame[14])
+                self.__my_frame['VStkA1']    = (__this_frame[15])
+                self.__my_frame['IStkA1']    = (__this_frame[16])
+                self.__my_frame['VStkA2']    = (__this_frame[17])
+                self.__my_frame['IStkA2']    = (__this_frame[18])
+                self.__my_frame['VStkA3']    = (__this_frame[19])
+                self.__my_frame['IStkA3']    = (__this_frame[20])
+                self.__my_frame['VStkB1']    = (__this_frame[21])
+                self.__my_frame['IStkB1']    = (__this_frame[22])
+                self.__my_frame['VStkB2']    = (__this_frame[23])
+                self.__my_frame['IStkB2']    = (__this_frame[24])
+                self.__my_frame['VStkB3']    = (__this_frame[25])
+                self.__my_frame['IStkB3']    = (__this_frame[26])
+                self.__my_frame['VBatIn']    = (__this_frame[27])
+                self.__my_frame['IBatIn']    = (__this_frame[28])
+                self.__my_frame['VBatOut']   = (__this_frame[29])
+                self.__my_frame['IBatOut']   = (__this_frame[30])
+                self.__my_frame['VLoad']     = (__this_frame[31])
+                self.__my_frame['ILoad']     = (__this_frame[32])
                 return True
 
         return False
