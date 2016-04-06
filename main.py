@@ -14,6 +14,7 @@ class Controller():
         self.start = 'STX'
         self.end = 'ETX'
         self.__raw_frame = ''
+        self.__parsed_frame = ''
 #        self.__raw_frame = 'STX,1461803,0,0,0,0,0,1,1,1,0,1,0,100000,100,0,0,en,en,100000,100000,0,20350,20030,0,0,0,100,976,0,750,0,750,0,976,0,776,0,ETX,STX,1463803,0,0,0,0,0,0,1,1,0,1,0,100000,100,0,0,en,en,100000,0,0,20350,20030,0,0,0,100,976,0,750,0,750,0,976,0,776,0,ETX,STX,1465803,0,0,0,0,0,0,1,1,0,1,0,100000,100,0,0,en,en,100000,0,0,20350,20030,0,0,0,100,976,0,750,0,750,0,976,0,776,0,ETX'
 
         self.__my_frame = {
@@ -55,6 +56,9 @@ class Controller():
             'VLoad' : '0',
             'ILoad' : '0',
             }
+
+    def get_parsed_frame(self):
+        return self.__parsed_frame
 
     def get_frame(self):
         x = self.__my_frame
@@ -127,6 +131,7 @@ class Controller():
             __full_frame = False
 #            print(__this_frame)
             if len(__this_frame) is 42:
+                self.__parsed_frame = self.__raw_frame
                 # Full frame received!
                 self.__my_frame['timestamp'] = (__this_frame[1])
                 self.__my_frame['RedLed']    = (__this_frame[2])
@@ -182,8 +187,8 @@ if __name__ == "__main__":
 
         while time.time()-time_start < 5:
             if a.parse_frame(port):
-                print(a.get_frame())
-                log.write(a.get_frame())
+                print(a.get_parsed_frame())
+                log.write(a.get_parsed_frame())
                 log.write("\n")
                 time_start = time.time()
 
