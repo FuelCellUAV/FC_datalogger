@@ -184,7 +184,7 @@ def get_i2c(address):
                 msb, lsb = master.transaction(reading(address, 2))[0]
                 
                 # Assemble the two bytes into a 16bit integer
-                temperature = ((( msb * 256 ) + lsb) >> 4 )
+                temperature = ((( msb * 256 ) + lsb) >> 4 ) /10.0
                 
                 # Return the value
                 return temperature
@@ -208,10 +208,13 @@ if __name__ == "__main__":
 
         while time.time()-time_start < 5:
             if a.parse_frame(port):
+                flow = Mfc.get(get_i2c, 0x2C)
                 print(a.get_parsed_frame(), end='')
                 print(',',end='')
-                print(Mfc.get(get_i2c, 0x2C))
+                print(str(flow))
                 log.write(a.get_parsed_frame())
+                log.write(',')
+                log.write(str(flow))
                 log.write("\n")
                 time_start = time.time()
 
