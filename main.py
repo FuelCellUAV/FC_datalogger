@@ -8,6 +8,8 @@
 
 import time
 import serial
+from mfc import mfc
+from quick2wire.i2c import I2CMaster, reading
 
 class Controller():
     def __init__(self):
@@ -131,7 +133,7 @@ class Controller():
             __full_frame = False
 #            print(__this_frame)
             if len(__this_frame) is 42:
-                self.__parsed_frame = self.__raw_frame
+                self.__parsed_frame = raw[:ptr].rstrip(',')
                 # Full frame received!
                 self.__my_frame['timestamp'] = (__this_frame[1])
                 self.__my_frame['RedLed']    = (__this_frame[2])
@@ -173,10 +175,29 @@ a=Controller()
 port = serial.Serial("/dev/ttyAMA0", baudrate=115200, timeout=3.0)
 log = open(("/media/usb/" + time.strftime("%y%m%d-%H%M%S") + "-AlexIE-" + ".tsv"), 'w')
 
+def get_i2c(address):
+        try:
+            # Using the I2C databus...
+            with I2CMaster(1) as master:
+                
+                # Read two bytes of data
+                msb, lsb = master.transaction(reading(address, 2))[0]
+                
+                # Assemble the two bytes into a 16bit integer
+                temperature = ((( msb * 256 ) + lsb) >> 4 )
+                
+                # Return the value
+                return temperature
+
+        # If I2C error return -1
+        except IOError:
+            return -1
+
 # Main run function
 if __name__ == "__main__":
     print("Datalogger 2016")
-
+    
+    Mfc = mfc.mfc()
     
     while True:
         out = 'DataDump 100\n\r'
@@ -187,7 +208,9 @@ if __name__ == "__main__":
 
         while time.time()-time_start < 5:
             if a.parse_frame(port):
-                print(a.get_parsed_frame())
+                print(a.get_parsed_frame(), end='')
+                print(',',end='')
+                print(Mfc.get(get_i2c, 0x2C))
                 log.write(a.get_parsed_frame())
                 log.write("\n")
                 time_start = time.time()
