@@ -5,9 +5,29 @@
 # Copyright (C) 2016  Simon Howroyd
 
 #############################################################################
-
-import time
+import argparse, sys, time, select
 import serial
+
+from quick2wire.i2c import I2CMaster, writing_bytes, reading
+from adc import adcpi
+from mfc import mfc
+from tdiLoadbank import loadbank
+from scheduler import scheduler
+
+# Inspect user input arguments
+def _parse_commandline():
+    # Define the parser
+    parser = argparse.ArgumentParser(description='Fuel Cell Controller by Simon Howroyd 2014')
+    
+    # Define aguments
+    parser.add_argument('--adc', type=int, default=0, help='Use ADCPI')
+    parser.add_argument('--load', type=int, default=0, help='Use Loadbank')
+    parser.add_argument('--quiet', type=int, default=0, help='Nothing on screen')
+    parser.add_argument('--profile', type=str, default='', help='Name of flight profile file')
+    parser.add_argument('--mfc', type=int, default=0, help='Use mass flow controller')
+
+    # Return what was argued
+    return parser.parse_args()
 
 class Controller():
     def __init__(self):
@@ -170,19 +190,21 @@ log = open(("/media/usb/" + time.strftime("%y%m%d-%H%M%S") + "-AlexIE-" + ".tsv"
 
 # Main run function
 if __name__ == "__main__":
-    print("Datalogger 2016")
+    args = _parse_commandline()
+
+    if not args.quiet: print("Datalogger 2016")
 
     
     while True:
         out = 'DataDump 100\n\r'
         port.write(out.encode())
 
-        print("Restarting...")
+        if not args.quiet: print("Restarting...")
         time_start = time.time()
 
         while time.time()-time_start < 5:
             if a.parse_frame(port):
-                print(a.get_frame())
+                if not args.quiet: print(a.get_frame())
                 log.write(a.get_frame())
                 log.write("\n")
                 time_start = time.time()
