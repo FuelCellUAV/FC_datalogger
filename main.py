@@ -9,7 +9,7 @@
 import time
 import serial
 from mfc import mfc
-from quick2wire.i2c import I2CMaster, reading
+#from quick2wire.i2c import I2CMaster, reading
 
 class Controller():
     def __init__(self):
@@ -197,7 +197,7 @@ def get_i2c(address):
 if __name__ == "__main__":
     print("Datalogger 2016")
     
-    Mfc = mfc.mfc()
+#    Mfc = mfc.mfc()
     
     while True:
         out = 'DataDump 100\n\r'
@@ -208,7 +208,7 @@ if __name__ == "__main__":
 
         while time.time()-time_start < 5:
             if a.parse_frame(port):
-                flow = Mfc.get(get_i2c, 0x2C)
+                flow = "NaN"#Mfc.get(get_i2c, 0x2C)
                 print(a.get_parsed_frame(), end='')
                 print(',',end='')
                 print(str(flow))
