@@ -8,6 +8,8 @@
 import argparse, sys, time, select
 import serial
 from mfc import mfc
+from tdiLoadbank import loadbank
+#from scheduler import scheduler
 #from quick2wire.i2c import I2CMaster, reading
 
 # Inspect user input arguments
@@ -206,15 +208,17 @@ def get_i2c(address):
         # If I2C error return -1
         except IOError:
             return -1
+        except NameError:
+            return -2
 
 # Main run function
 if __name__ == "__main__":
     args = _parse_commandline()
 
+    if args.mfc: Mfc = mfc.mfc()
+
     if not args.quiet: print("Datalogger 2016")
 
-#    Mfc = mfc.mfc()
-    
     while True:
         out = 'DataDump 100\n\r'
         port.write(out.encode())
@@ -224,17 +228,16 @@ if __name__ == "__main__":
 
         while time.time()-time_start < 5:
             if a.parse_frame(port):
-                flow = "NaN"#Mfc.get(get_i2c, 0x2C)
                 if not args.quiet:
                     print(a.get_frame(),end='')
                     if args.mfc:
                         print(',',end='')
-                        print(str(flow),end='')
+                        print(str(Mfc.get(get_i2c, 0x2C)),end='')
                     print('\n',end='')
                 log.write(a.get_parsed_frame())
                 if args.mfc:
                     log.write(',')
-                    log.write(str(flow))
+                    log.write(str(Mfc.get(get_i2c, 0x2C)))
                 log.write("\n")
                 time_start = time.time()
 
