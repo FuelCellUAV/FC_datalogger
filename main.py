@@ -9,8 +9,8 @@ import argparse, sys, time, select
 import serial
 from mfc import mfc
 from tdiLoadbank import loadbank
-#from scheduler import scheduler
-#from quick2wire.i2c import I2CMaster, reading
+from scheduler import scheduler
+from quick2wire.i2c import I2CMaster, reading
 
 # Inspect user input arguments
 def _parse_commandline():
@@ -208,14 +208,39 @@ def get_i2c(address):
         # If I2C error return -1
         except IOError:
             return -1
-        except NameError:
-            return -2
 
 # Main run function
 if __name__ == "__main__":
     args = _parse_commandline()
 
     if args.mfc: Mfc = mfc.mfc()
+    if args.load:
+        load = loadbank.TdiLoadbank('158.125.152.225', 10001, 'fuelcell')
+        if load.connect() == 0:
+            load = ''
+        else:
+            load.zero()
+            time.sleep(0.2)
+            load.mode = 'CURRENT'
+            time.sleep(0.2)
+            load.range = '4'
+            time.sleep(0.2)
+            load.current_limit = '60.0'
+            time.sleep(0.2)
+            load.voltage_limit = '35.0'
+            time.sleep(0.2)
+            load.voltage_minimum = '5.0'
+    else: load = ''
+
+    if args.profile:
+        profile = scheduler.Scheduler(args.profile)
+            
+        # If a loadbank is connected then define this as the output
+        if load:
+            output = "loadbank"
+    else:
+        profile = ''
+
 
     if not args.quiet: print("Datalogger 2016")
 
@@ -233,11 +258,58 @@ if __name__ == "__main__":
                     if args.mfc:
                         print(',',end='')
                         print(str(Mfc.get(get_i2c, 0x2C)),end='')
-                    print('\n',end='')
                 log.write(a.get_parsed_frame())
                 if args.mfc:
                     log.write(',')
                     log.write(str(Mfc.get(get_i2c, 0x2C)))
+
+
+                if profile:
+                    setpoint = profile.run()
+                    if "loadbank" in output and load:
+                        if setpoint >= 0:
+                            load.load = True
+                            mode = load.mode
+                            if "VOLTAGE" in mode:
+                                load.voltage_constant = str(setpoint)
+                            elif "CURRENT" in mode:
+                                load.current_constant = str(setpoint)
+                            elif "POWER" in mode:
+                                load.power_constant = str(setpoint)
+                        else:
+                            load.load = False
+
+                if load:
+                    load.update()
+                    if not args.quiet:
+                        print(',',end='')
+                        print(str(load.mode.split()[0]),end='')
+                        print(',',end='')
+                        print(str(load.mode.split()[1]),end='')
+                        print(',',end='')
+                        print(str(load.voltage),end='')
+                        print(',',end='')
+                        print(str(load.current),end='')
+                        print(',',end='')
+                        print(str(load.power),end='')
+
+                    log.write(str(load.mode.split()[0] + load.mode.split()[1]))
+                    log.write(',')
+                    log.write(str(load.voltage))
+                    log.write(',')
+                    log.write(str(load.current))
+                    log.write(',')
+                    log.write(str(load.power))
+
+
+
+
+
+
+
+
+
+                print('\n',end='')
                 log.write("\n")
                 time_start = time.time()
 
