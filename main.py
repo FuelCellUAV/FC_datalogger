@@ -16,9 +16,9 @@ def _parse_commandline():
     parser = argparse.ArgumentParser(description='Fuel Cell Datalogger Simon Howroyd 2016')
     
     # Define aguments
-    parser.add_argument('--adc', type=int, default=0, help='Use ADCPI')
-    parser.add_argument('--load', type=int, default=0, help='Use Loadbank')
-    parser.add_argument('--quiet', type=int, default=0, help='Nothing on screen')
+    parser.add_argument('--adc', action="store_true", help='Use ADCPI')
+    parser.add_argument('--load', action="store_true", help='Use Loadbank')
+    parser.add_argument('--quiet', action="store_true", help='Nothing on screen')
     parser.add_argument('--profile', type=str, default='', help='Name of flight profile file')
     parser.add_argument('--mfc', action="store_true", help='Use mass flow controller')
 
