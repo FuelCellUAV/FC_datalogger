@@ -7,6 +7,7 @@
 #############################################################################
 import argparse, sys, time, select
 import serial
+from adc import adcpi
 from mfc import mfc
 from tdiLoadbank import loadbank
 from scheduler import scheduler
@@ -209,6 +210,25 @@ def get_i2c(address):
         except IOError:
             return -1
 
+# Method to get Current
+def get_current(adc, channel):
+        # Get current and calibrate
+        current = abs(adc.get(channel) * 1000 / 6.89) * 1.075
+        if current > 1000.0: current = 0.0 #TODO
+        
+        # Sensor only valid above a certain value
+#        if current < 0.475:  # TODO can this be improved?
+#            current = 0  # Account for opamp validity
+            
+        return current
+
+    # method to get Voltage
+def get_voltage(adc, channel):
+        voltage = abs(adc.get(channel) * 1000.0 / 60.7)
+        if voltage > 1000.0: voltage = 0.0 #TODO
+        return voltage
+
+
 # Main run function
 if __name__ == "__main__":
     args = _parse_commandline()
@@ -240,6 +260,10 @@ if __name__ == "__main__":
             output = "loadbank"
     else:
         profile = ''
+
+    if args.adc:
+        adc1 = adcpi.MCP3424(0x6A)
+        adc2 = adcpi.MCP3424(0x6B)
 
 
     if not args.quiet: print("Datalogger 2016")
@@ -301,6 +325,21 @@ if __name__ == "__main__":
                     log.write(',')
                     log.write(str(load.power))
 
+                if args.adc:
+                    data = [get_voltage(adc1, 0),
+                            get_voltage(adc1, 2),
+                            get_voltage(adc2, 0),
+                            get_current(adc1, 1),
+                            get_current(adc1, 3),
+                            get_current(adc2, 1)]
+                    for x in range(0,len(data)):
+                        log.write(',')
+                        log.write(str(data[x]))
+
+                    if not args.quiet:
+                        for x in range(0,len(data)):
+                            print(',',end='')
+                            print(str(round(data[x],2)),end='')
 
 
 
