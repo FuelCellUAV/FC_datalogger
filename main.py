@@ -2,14 +2,28 @@
 
 # Fuel Cell Data Logger
 
-# Copyright (C) 2016  Simon Howroyd
+# Copyright (C) 2016  Simon Howroyd, Alex Thirkell
 
 #############################################################################
-
-import time
+import argparse, sys, time, select
 import serial
 from mfc import mfc
 #from quick2wire.i2c import I2CMaster, reading
+
+# Inspect user input arguments
+def _parse_commandline():
+    # Define the parser
+    parser = argparse.ArgumentParser(description='Fuel Cell Datalogger Simon Howroyd 2016')
+    
+    # Define aguments
+    parser.add_argument('--adc', type=int, default=0, help='Use ADCPI')
+    parser.add_argument('--load', type=int, default=0, help='Use Loadbank')
+    parser.add_argument('--quiet', type=int, default=0, help='Nothing on screen')
+    parser.add_argument('--profile', type=str, default='', help='Name of flight profile file')
+    parser.add_argument('--mfc', action="store_true", help='Use mass flow controller')
+
+    # Return what was argued
+    return parser.parse_args()
 
 class Controller():
     def __init__(self):
@@ -195,26 +209,31 @@ def get_i2c(address):
 
 # Main run function
 if __name__ == "__main__":
-    print("Datalogger 2016")
-    
+    args = _parse_commandline()
+
+    if not args.quiet: print("Datalogger 2016")
+
 #    Mfc = mfc.mfc()
     
     while True:
         out = 'DataDump 100\n\r'
         port.write(out.encode())
 
-        print("Restarting...")
+        if not args.quiet: print("Restarting...")
         time_start = time.time()
 
         while time.time()-time_start < 5:
             if a.parse_frame(port):
                 flow = "NaN"#Mfc.get(get_i2c, 0x2C)
-                print(a.get_parsed_frame(), end='')
-                print(',',end='')
-                print(str(flow))
+                if not args.quiet:
+                    print(a.get_frame())
+                    if args.mfc:
+                        print(',',end='')
+                        print(str(flow))
                 log.write(a.get_parsed_frame())
-                log.write(',')
-                log.write(str(flow))
+                if args.mfc:
+                    log.write(',')
+                    log.write(str(flow))
                 log.write("\n")
                 time_start = time.time()
 
