@@ -226,10 +226,11 @@ if __name__ == "__main__":
             if a.parse_frame(port):
                 flow = "NaN"#Mfc.get(get_i2c, 0x2C)
                 if not args.quiet:
-                    print(a.get_frame())
+                    print(a.get_frame(),end='')
                     if args.mfc:
                         print(',',end='')
-                        print(str(flow))
+                        print(str(flow),end='')
+                    print('\n',end='')
                 log.write(a.get_parsed_frame())
                 if args.mfc:
                     log.write(',')
