@@ -280,11 +280,11 @@ if __name__ == "__main__":
                 if not args.quiet:
                     print(a.get_frame(),end='')
                     if args.mfc:
-                        print(',',end='')
+                        print(',,',end='')
                         print(str(Mfc.get(get_i2c, 0x2C)),end='')
                 log.write(a.get_parsed_frame())
                 if args.mfc:
-                    log.write(',')
+                    log.write(',,')
                     log.write(str(Mfc.get(get_i2c, 0x2C)))
 
 
@@ -306,7 +306,7 @@ if __name__ == "__main__":
                 if load:
                     load.update()
                     if not args.quiet:
-                        print(',',end='')
+                        print(',,',end='')
                         print(str(load.mode.split()[0]),end='')
                         print(',',end='')
                         print(str(load.mode.split()[1]),end='')
@@ -317,6 +317,7 @@ if __name__ == "__main__":
                         print(',',end='')
                         print(str(load.power),end='')
 
+                    log.write(',,')
                     log.write(str(load.mode.split()[0] + load.mode.split()[1]))
                     log.write(',')
                     log.write(str(load.voltage))
@@ -332,14 +333,16 @@ if __name__ == "__main__":
                             get_current(adc1, 1),
                             get_current(adc1, 3),
                             get_current(adc2, 1)]
+                    log.write(',,')
                     for x in range(0,len(data)):
-                        log.write(',')
                         log.write(str(data[x]))
+                        log.write(',')
 
                     if not args.quiet:
+                        print(',,',end='')
                         for x in range(0,len(data)):
-                            print(',',end='')
                             print(str(round(data[x],2)),end='')
+                            print(',',end='')
 
 
 
