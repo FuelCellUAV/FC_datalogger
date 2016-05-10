@@ -2,11 +2,29 @@
 
 # Fuel Cell Data Logger
 
-# Copyright (C) 2016  Simon Howroyd
+# Copyright (C) 2016  Simon Howroyd, Alex Thirkell
 
 #############################################################################
-import argparse, sys, time, select
+import argparse, sys, time, select, os
 import serial
+import RPi.GPIO as GPIO
+from mfc import mfc
+#from quick2wire.i2c import I2CMaster, reading
+
+# Inspect user input arguments
+def _parse_commandline():
+    # Define the parser
+    parser = argparse.ArgumentParser(description='Fuel Cell Datalogger Simon Howroyd 2016')
+    
+    # Define aguments
+    parser.add_argument('--adc', action="store_true", help='Use ADCPI')
+    parser.add_argument('--load', action="store_true", help='Use Loadbank')
+    parser.add_argument('--quiet', action="store_true", help='Nothing on screen')
+    parser.add_argument('--profile', type=str, default='', help='Name of flight profile file')
+    parser.add_argument('--mfc', action="store_true", help='Use mass flow controller')
+
+    # Return what was argued
+    return parser.parse_args()
 
 from quick2wire.i2c import I2CMaster, writing_bytes, reading
 from adc import adcpi
@@ -34,6 +52,7 @@ class Controller():
         self.start = 'STX'
         self.end = 'ETX'
         self.__raw_frame = ''
+        self.__parsed_frame = ''
 #        self.__raw_frame = 'STX,1461803,0,0,0,0,0,1,1,1,0,1,0,100000,100,0,0,en,en,100000,100000,0,20350,20030,0,0,0,100,976,0,750,0,750,0,976,0,776,0,ETX,STX,1463803,0,0,0,0,0,0,1,1,0,1,0,100000,100,0,0,en,en,100000,0,0,20350,20030,0,0,0,100,976,0,750,0,750,0,976,0,776,0,ETX,STX,1465803,0,0,0,0,0,0,1,1,0,1,0,100000,100,0,0,en,en,100000,0,0,20350,20030,0,0,0,100,976,0,750,0,750,0,976,0,776,0,ETX'
 
         self.__my_frame = {
@@ -75,6 +94,9 @@ class Controller():
             'VLoad' : '0',
             'ILoad' : '0',
             }
+
+    def get_parsed_frame(self):
+        return self.__parsed_frame
 
     def get_frame(self):
         x = self.__my_frame
@@ -147,6 +169,7 @@ class Controller():
             __full_frame = False
 #            print(__this_frame)
             if len(__this_frame) is 42:
+                self.__parsed_frame = raw[:ptr].rstrip(',')
                 # Full frame received!
                 self.__my_frame['timestamp'] = (__this_frame[1])
                 self.__my_frame['RedLed']    = (__this_frame[2])
@@ -184,28 +207,74 @@ class Controller():
 
         return False
 
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+GPIO.setup(24, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(23, GPIO.OUT)
+GPIO.output(23,0)
+
 a=Controller()
 port = serial.Serial("/dev/ttyAMA0", baudrate=115200, timeout=3.0)
-log = open(("/media/usb/" + time.strftime("%y%m%d-%H%M%S") + "-AlexIE-" + ".tsv"), 'w')
+try:
+    log = open(("/media/usb/" + time.strftime("%y%m%d-%H%M%S") + "-AlexIE-" + ".tsv"), 'w')
+except PermissionError:
+    log = open(("/home/pi/FC_datalogger/" + time.strftime("%y%m%d-%H%M%S") + "-AlexIE-" + ".tsv"), 'w')
+
+def get_i2c(address):
+        try:
+            # Using the I2C databus...
+            with I2CMaster(1) as master:
+                
+                # Read two bytes of data
+                msb, lsb = master.transaction(reading(address, 2))[0]
+                
+                # Assemble the two bytes into a 16bit integer
+                temperature = ((( msb * 256 ) + lsb) >> 4 ) /10.0
+                
+                # Return the value
+                return temperature
+
+        # If I2C error return -1
+        except IOError:
+            return -1
 
 # Main run function
 if __name__ == "__main__":
-    args = _parse_commandline()
+    try:
+        args = _parse_commandline()
 
-    if not args.quiet: print("Datalogger 2016")
+        if not args.quiet: print("Datalogger 2016")
 
+#    Mfc = mfc.mfc()
     
-    while True:
-        out = 'DataDump 100\n\r'
-        port.write(out.encode())
+        while True:
+            out = 'DataDump 100\n\r'
+            port.write(out.encode())
 
-        if not args.quiet: print("Restarting...")
-        time_start = time.time()
+            if not args.quiet: print("Restarting...")
+            time_start = time.time()
 
-        while time.time()-time_start < 5:
-            if a.parse_frame(port):
-                if not args.quiet: print(a.get_frame())
-                log.write(a.get_frame())
-                log.write("\n")
-                time_start = time.time()
+            GPIO.output(23,1)
+
+            while time.time()-time_start < 5:
+                if a.parse_frame(port):
+                    flow = "NaN"#Mfc.get(get_i2c, 0x2C)
+                    if not args.quiet:
+                        print(a.get_frame(),end='')
+                        if args.mfc:
+                            print(',',end='')
+                            print(str(flow),end='')
+                        print('\n',end='')
+                    log.write(a.get_parsed_frame())
+                    if args.mfc:
+                        log.write(',')
+                        log.write(str(flow))
+                    log.write("\n")
+                    os.system("sync")
+                    time_start = time.time()
+    except:
+        os.system("sync")
+        GPIO.output(23,0)
+        GPIO.cleanup()
+        sys.exit()
 
