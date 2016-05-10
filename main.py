@@ -358,7 +358,7 @@ if __name__ == "__main__":
                                 print(str(round(data[x],2)),end='')
                                 print(',',end='')
 
-                    print('\n',end='')
+                    if not args.quiet: print('\n',end='')
                     log.write("\n")
                     os.system("sync")
                     time_start = time.time()
