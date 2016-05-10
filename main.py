@@ -8,8 +8,11 @@
 import argparse, sys, time, select, os
 import serial
 import RPi.GPIO as GPIO
+from adc import adcpi
 from mfc import mfc
-#from quick2wire.i2c import I2CMaster, reading
+from tdiLoadbank import loadbank
+from scheduler import scheduler
+from quick2wire.i2c import I2CMaster, reading
 
 # Inspect user input arguments
 def _parse_commandline():
@@ -217,10 +220,61 @@ def get_i2c(address):
         except IOError:
             return -1
 
+# Method to get Current
+def get_current(adc, channel):
+        # Get current and calibrate
+        current = abs(adc.get(channel) * 1000 / 6.89) * 1.075
+        if current > 1000.0: current = 0.0 #TODO
+        
+        # Sensor only valid above a certain value
+#        if current < 0.475:  # TODO can this be improved?
+#            current = 0  # Account for opamp validity
+            
+        return current
+
+    # method to get Voltage
+def get_voltage(adc, channel):
+        voltage = abs(adc.get(channel) * 1000.0 / 60.7)
+        if voltage > 1000.0: voltage = 0.0 #TODO
+        return voltage
+
+
 # Main run function
 if __name__ == "__main__":
     try:
         args = _parse_commandline()
+
+        if args.mfc: Mfc = mfc.mfc()
+        if args.load:
+            load = loadbank.TdiLoadbank('158.125.152.225', 10001, 'fuelcell')
+            if load.connect() == 0:
+                load = ''
+            else:
+                load.zero()
+                time.sleep(0.2)
+                load.mode = 'CURRENT'
+                time.sleep(0.2)
+                load.range = '4'
+                time.sleep(0.2)
+                load.current_limit = '60.0'
+                time.sleep(0.2)
+                load.voltage_limit = '35.0'
+                time.sleep(0.2)
+                load.voltage_minimum = '5.0'
+        else: load = ''
+
+        if args.profile:
+            profile = scheduler.Scheduler(args.profile)
+            
+            # If a loadbank is connected then define this as the output
+            if load:
+                output = "loadbank"
+        else:
+            profile = ''
+
+        if args.adc:
+            adc1 = adcpi.MCP3424(0x6E)
+            adc2 = adcpi.MCP3424(0x6F)
 
         if not args.quiet: print("Datalogger 2016")
 
@@ -237,17 +291,74 @@ if __name__ == "__main__":
 
             while time.time()-time_start < 5:
                 if a.parse_frame(port):
-                    flow = "NaN"#Mfc.get(get_i2c, 0x2C)
+                    log.write(a.get_parsed_frame())
                     if not args.quiet:
                         print(a.get_frame(),end='')
-                        if args.mfc:
-                            print(',',end='')
-                            print(str(flow),end='')
-                        print('\n',end='')
-                    log.write(a.get_parsed_frame())
+
                     if args.mfc:
+                        log.write(',,')
+                        log.write(str(Mfc.get(get_i2c, 0x2C)))
+                        if not args.quiet:
+                            print(',,',end='')
+                            print(str(Mfc.get(get_i2c, 0x2C)),end='')
+
+                    if profile:
+                        setpoint = profile.run()
+                        if "loadbank" in output and load:
+                            if setpoint >= 0:
+                                load.load = True
+                                mode = load.mode
+                                if "VOLTAGE" in mode:
+                                    load.voltage_constant = str(setpoint)
+                                elif "CURRENT" in mode:
+                                    load.current_constant = str(setpoint)
+                                elif "POWER" in mode:
+                                    load.power_constant = str(setpoint)
+                            else:
+                                load.load = False
+
+                    if load:
+                        load.update()
+                        if not args.quiet:
+                            print(',,',end='')
+                            print(str(load.mode.split()[0]),end='')
+                            print(',',end='')
+                            print(str(load.mode.split()[1]),end='')
+                            print(',',end='')
+                            print(str(load.voltage),end='')
+                            print(',',end='')
+                            print(str(load.current),end='')
+                            print(',',end='')
+                            print(str(load.power),end='')
+
+                        log.write(',,')
+                        log.write(str(load.mode.split()[0] + load.mode.split()[1]))
                         log.write(',')
-                        log.write(str(flow))
+                        log.write(str(load.voltage))
+                        log.write(',')
+                        log.write(str(load.current))
+                        log.write(',')
+                        log.write(str(load.power))
+
+                    if args.adc:
+                        data = [get_voltage(adc1, 0),
+                                get_voltage(adc1, 1),
+                                get_voltage(adc1, 2),
+                                get_current(adc2, 1),
+                                get_current(adc2, 2),
+                                get_current(adc2, 3)]
+                        log.write(',,')
+                        for x in range(0,len(data)):
+                            log.write(str(data[x]))
+                            log.write(',')
+
+                        if not args.quiet:
+                            print(',,',end='')
+                            for x in range(0,len(data)):
+                                print(str(round(data[x],2)),end='')
+                                print(',',end='')
+
+                    print('\n',end='')
                     log.write("\n")
                     os.system("sync")
                     time_start = time.time()

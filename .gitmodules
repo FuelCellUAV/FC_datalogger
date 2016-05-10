@@ -1,0 +1,6 @@
+[submodule "tdiLoadbank"]
+	path = tdiLoadbank
+	url = https://github.com/FuelCellUAV/tdiLoadbank.git
+[submodule "quick2wire-python-api"]
+	path = quick2wire-python-api
+	url = https://github.com/quick2wire/quick2wire-python-api.git
