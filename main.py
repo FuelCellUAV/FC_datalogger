@@ -5,8 +5,9 @@
 # Copyright (C) 2016  Simon Howroyd, Alex Thirkell
 
 #############################################################################
-import argparse, sys, time, select
+import argparse, sys, time, select, os
 import serial
+import RPi.GPIO as GPIO
 from mfc import mfc
 #from quick2wire.i2c import I2CMaster, reading
 
@@ -185,9 +186,18 @@ class Controller():
 
         return False
 
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+GPIO.setup(24, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(23, GPIO.OUT)
+GPIO.output(23,0)
+
 a=Controller()
 port = serial.Serial("/dev/ttyAMA0", baudrate=115200, timeout=3.0)
-log = open(("/media/usb/" + time.strftime("%y%m%d-%H%M%S") + "-AlexIE-" + ".tsv"), 'w')
+try:
+    log = open(("/media/usb/" + time.strftime("%y%m%d-%H%M%S") + "-AlexIE-" + ".tsv"), 'w')
+except PermissionError:
+    log = open(("/home/pi/FC_datalogger/" + time.strftime("%y%m%d-%H%M%S") + "-AlexIE-" + ".tsv"), 'w')
 
 def get_i2c(address):
         try:
@@ -209,32 +219,41 @@ def get_i2c(address):
 
 # Main run function
 if __name__ == "__main__":
-    args = _parse_commandline()
+    try:
+        args = _parse_commandline()
 
-    if not args.quiet: print("Datalogger 2016")
+        if not args.quiet: print("Datalogger 2016")
 
 #    Mfc = mfc.mfc()
     
-    while True:
-        out = 'DataDump 100\n\r'
-        port.write(out.encode())
+        while True:
+            out = 'DataDump 100\n\r'
+            port.write(out.encode())
 
-        if not args.quiet: print("Restarting...")
-        time_start = time.time()
+            if not args.quiet: print("Restarting...")
+            time_start = time.time()
 
-        while time.time()-time_start < 5:
-            if a.parse_frame(port):
-                flow = "NaN"#Mfc.get(get_i2c, 0x2C)
-                if not args.quiet:
-                    print(a.get_frame(),end='')
+            GPIO.output(23,1)
+
+            while time.time()-time_start < 5:
+                if a.parse_frame(port):
+                    flow = "NaN"#Mfc.get(get_i2c, 0x2C)
+                    if not args.quiet:
+                        print(a.get_frame(),end='')
+                        if args.mfc:
+                            print(',',end='')
+                            print(str(flow),end='')
+                        print('\n',end='')
+                    log.write(a.get_parsed_frame())
                     if args.mfc:
-                        print(',',end='')
-                        print(str(flow),end='')
-                    print('\n',end='')
-                log.write(a.get_parsed_frame())
-                if args.mfc:
-                    log.write(',')
-                    log.write(str(flow))
-                log.write("\n")
-                time_start = time.time()
+                        log.write(',')
+                        log.write(str(flow))
+                    log.write("\n")
+                    os.system("sync")
+                    time_start = time.time()
+    except:
+        os.system("sync")
+        GPIO.output(23,0)
+        GPIO.cleanup()
+        sys.exit()
 
