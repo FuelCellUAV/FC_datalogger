@@ -262,8 +262,8 @@ if __name__ == "__main__":
         profile = ''
 
     if args.adc:
-        adc1 = adcpi.MCP3424(0x6A)
-        adc2 = adcpi.MCP3424(0x6B)
+        adc1 = adcpi.MCP3424(0x6E)
+        adc2 = adcpi.MCP3424(0x6F)
 
 
     if not args.quiet: print("Datalogger 2016")
@@ -328,11 +328,11 @@ if __name__ == "__main__":
 
                 if args.adc:
                     data = [get_voltage(adc1, 0),
+                            get_voltage(adc1, 1),
                             get_voltage(adc1, 2),
-                            get_voltage(adc2, 0),
-                            get_current(adc1, 1),
-                            get_current(adc1, 3),
-                            get_current(adc2, 1)]
+                            get_current(adc2, 1),
+                            get_current(adc2, 2),
+                            get_current(adc2, 3)]
                     log.write(',,')
                     for x in range(0,len(data)):
                         log.write(str(data[x]))
